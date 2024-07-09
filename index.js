@@ -39,4 +39,13 @@ io.on('connection', socket => {
     socket.on('task-updated',(organizationID,organizationName,projectID,taskTitle)=>{
         socket.broadcast.to(organizationID).emit('task-updated2',organizationID,organizationName,projectID,taskTitle);
     })
+    socket.on('project-deleted',(organizationID,organizationName,projectID,projectName)=>{
+        socket.broadcast.to(organizationID).emit('project-deleted2',organizationID,organizationName,projectID,projectName);
+    })
+    socket.on('task-deleted',(organizationID,organizationName,projectID,taskTitle)=>{
+        socket.broadcast.to(organizationID).emit('task-deleted2',organizationID,organizationName,projectID,taskTitle);
+    })
+    socket.on('send-message',(organizationID,peerFullName,message)=>{
+        socket.broadcast.to(organizationID).emit('recieve-message',peerFullName,message);
+    })
 });

@@ -1,4 +1,7 @@
 const projects = require("../Models/projects");
+const { CohereClient } = require('cohere-ai');
+require('dotenv').config();
+const ai = new CohereClient({ token: process.env.COHEREAI_API_KEY });
 
 const handlePostCreateProject = (req, res) => {
     const projectData = { ...req.body, tasks: [] };
@@ -64,7 +67,7 @@ const handlePostUpdateProject = async (req, res) => {
         );
 
         if (!updatedProject) {
-            throw new Error('Project not found');
+            throw new Error('Project not found.');
         }
 
         res.json({ 'message': 'Project Updated Successfully.' });
@@ -79,7 +82,7 @@ const handlePostUpdateTask = async (req, res) => {
     try {
         let project = await projects.findById(req.params.projectID);
         if (!project) {
-            throw new Error('Project not found');
+            throw new Error('Project not found.');
         }
 
         const taskData = req.body;
@@ -97,8 +100,65 @@ const handlePostUpdateTask = async (req, res) => {
         res.json({ 'message': 'Task Updated Successfully.' });
     } catch (error) {
         console.log(error);
-        res.status(500).json({ 'message': error.message });
+        res.json({ 'message': error.message });
     }
 };
 
-module.exports = { handlePostCreateProject, handlePostCreateTask, handleGetProjects, handlePostUpdateProject, handlePostUpdateTask };
+const handleDeleteProject=async (req,res)=>{
+    try {
+        const projectId = req.params.projectID;
+
+        const project = await projects.findByIdAndDelete(projectId);
+
+        if (!project) {
+            throw new Error('Project not found.');
+        }
+
+        res.json({ 'message': 'Project Deleted Successfully.' });
+    } catch (error) {
+        console.log(error);
+        res.json({ 'message': error.message });
+    }
+};
+
+const handleDeleteTask = async (req, res) => {
+    try {
+        const { projectID, taskID } = req.params;
+
+        let project = await projects.findById(projectID);
+
+        if (!project) {
+            throw new Error('Project not found.');
+        }
+
+        const taskIndex = project.tasks.findIndex(task => task._id.toString() === taskID);
+        
+        if (taskIndex === -1) {
+            throw new Error('Task not found.');
+        }
+
+        project.tasks.splice(taskIndex, 1);
+
+        await project.save();
+
+        res.json({ message: 'Task Deleted Successfully.' });
+    } catch (error) {
+        console.error(error);
+        res.json({ 'message': error.message });
+    }
+};
+
+const handleGetChatbot=async (req,res)=>{
+    let prompt=`You are an helpful chatbot named Zappy and you are working for a company named Zaptask. Zaptask is an intelligent task management system designed to streamline your project management workflow. It allows users to create and manage organizations, projects, and tasks efficiently. With seamless integration of features like user authentication, real-time updates, and task prioritization, Zaptask ensures optimal team collaboration and productivity. You can also chat in real-time with other organization members. Note that only authorized members can delete or update tasks and projects, ensuring security and control within your organization.
+    Your task is to respond to below given user\'s query.
+    User's Query: ${req.query.q}`
+    try {
+        const response = await ai.generate({ prompt:prompt });
+        res.json({ 'response': response.generations[0].text });
+    } catch (error) {
+        console.log(error);
+        res.json({ 'response': error.message });
+    }
+}
+
+module.exports = { handlePostCreateProject, handlePostCreateTask, handleGetProjects, handlePostUpdateProject, handlePostUpdateTask, handleDeleteProject, handleDeleteTask, handleGetChatbot };
